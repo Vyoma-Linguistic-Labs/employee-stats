@@ -44,8 +44,17 @@ except ValueError:
     print("Invalid date format. Dates should be in Unix timestamp format.")
     sys.exit(1)
     
-# start_date = 1672531200
-# end_date = 1685577599
+# start_date = 1713830400
+# end_date = 1713916799
+
+# Define the list of columns to check for NaN
+columns_to_check = [
+    "Course", "Product", "Proj-Common-Activity", "Proj-Outside-Office",
+    "Management-Project", "Technology-Project", "Linguistic-Project",
+    "MMedia-Project", "Project-CST", "Sales-Mktg-Project", "Project-ELA",
+    "Proj-KidsPersona", "FinAcc-Project", "Website", "SFH-Admin-Project", 
+    "Admin-Project", "Linguistic-Activity"
+]
 
 team_id = "3314662"
 headers = {
@@ -110,9 +119,10 @@ descriptions = []
 billable = []
 tags = []
 time_entry_ids =[]
+goal_type = []
 
 # Loop over every employee
-for key in members_dict:#[49207289, 3426506]:
+for key in members_dict:#[49207289] #members_dict
     # If the Name is NoneType skip the iteration
     if not members_dict[key]:
         continue
@@ -195,7 +205,7 @@ df = pd.DataFrame({
     'Billable': billable,
     'Tags': tags,
     'Time Entry ID': time_entry_ids
-    # 'Day': days
+    # 'Goal Type': goal_type
 })    
 
 # Create a new DataFrame with only unique Task IDs
@@ -216,12 +226,7 @@ for task_id in tqdm(uniqueTaskList, total=len(uniqueTaskList)):
 
     # make the API request and parse the JSON response
     response = requests.get(url, headers=headers)
-    QUOTA += 1
-    # if QUOTA > 98:
-    #     QUOTA = 0
-    #     print('API Limit reached, Program will pause for a minute: Errors = ', num_of_err)
-    #     time.sleep(61)
-    #     response = requests.get(url, headers=headers)
+    QUOTA += 1    
         
     tasks = response.json()
     if 'err' in tasks:        
@@ -263,8 +268,51 @@ for task_id in tqdm(uniqueTaskList, total=len(uniqueTaskList)):
 
 # Create 'Space Name' column based on 'Space ID'
 df['Space Name'] = df['Space ID'].map(spaces)
+df['Task URL'] = 'https://app.clickup.com/t/' + df['Task ID']
 
-df.to_csv('allEmployeeClickUp.csv', index=False)   
+
+### Check if Goal Type and Project fields are set ####
+# Check for the string 'nan' in 'Goal Type' column and create a new DataFrame with the corresponding values
+nan_rows = df[df['Goal Type'] == 'nan'][['Emp Name', 'Task Name']]
+# Save the new DataFrame to a CSV file
+nan_rows.to_csv('nan_goal_type_rows.csv', index=False)
+
+project_columns = list(set(df.columns.tolist()).intersection(columns_to_check))
+# Filter rows where all columns in project_columns are equal to the string 'nan'
+nan_condition = df[project_columns].eq('nan').all(axis=1)
+# Extract 'Emp Name' and 'Task Name' for rows matching the condition
+nan_rows = df[nan_condition][['Emp Name', 'Task Name']]
+# Save the extracted rows to a CSV file
+nan_rows.to_csv('nan_projects_rows.csv', index=False)
+
+# Remove the rows with the string 'nan' in 'Goal Type' from the original DataFrame
+df_cleaned = df[df['Goal Type'] != 'nan']
+# Remove the rows from the original DataFrame
+df_cleaned = df_cleaned[~nan_condition]
+
+#### write the DataFrame to an Excel file
+filename = "allEmployeeClickUp.xlsx"
+# Create a new Excel writer using xlsxwriter
+writer = pd.ExcelWriter(filename, engine='xlsxwriter')
+df_cleaned.to_excel(writer, sheet_name='Sheet1', index=False)
+# Get the xlsxwriter workbook and worksheet objects
+worksheet = writer.sheets['Sheet1']
+# Add hyperlinks to the 'Task ID' column
+for row_num, value in enumerate(df_cleaned['Task ID'], start=1):
+    if pd.isna(value):
+        break
+    url = f'https://app.clickup.com/t/{value}'
+    worksheet.write_url(row_num, df_cleaned.columns.get_loc('Task ID'), url, string=value)
+# Save the Excel file
+writer.close()
+
+### Write to CSV ###
+filename = "allEmployeeClickUp.csv"
+# Create a new DataFrame to store the data with hyperlinks
+df_hyperlinked = df_cleaned.copy()
+# Write the DataFrame to a CSV file
+df_hyperlinked.to_csv(filename, index=False)#, quoting=csv.QUOTE_NONE, escapechar='\\')
+
 print(time.time()-start)        
         
          
