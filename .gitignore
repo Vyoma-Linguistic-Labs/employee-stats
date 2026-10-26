@@ -1,0 +1,26 @@
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+
+# Employee rosters and API snapshots (share privately)
+allEmpStats-roster.json
+allEmpStats-roster-*.json
+teamInfo.json
+*_TimeTracking.json
+
+# Report output and resumable API responses
+.allEmpStats-checkpoints/
+outputs/
+*.csv
+*.xlsx
+*.xls
+
+# Backups, caches, and Python environments
+*.bak
+*.bak.*
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.DS_Store

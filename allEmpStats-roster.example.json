@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "workspace_id": "3314662",
+  "date_range": "example-source-snapshot",
+  "employees": [
+    {
+      "employee_code": "EXAMPLE001",
+      "name": "Example former employee",
+      "clickup_ids": [
+        "123456789"
+      ]
+    },
+    {
+      "employee_code": "EXAMPLE002",
+      "name": "Example employee whose ClickUp ID is unknown",
+      "clickup_ids": []
+    }
+  ]
+}
